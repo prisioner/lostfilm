@@ -1,4 +1,6 @@
 require_relative 'user_io'
+require_relative 'lostfilm_api'
+require_relative 'config_loader'
 
 module LostFilmClient
   module_function
@@ -13,5 +15,9 @@ module LostFilmClient
 
     UserIO.puts_string "Авторизация прошла успешно!"
     session
+  end
+
+  def get_series_list
+
   end
 end
