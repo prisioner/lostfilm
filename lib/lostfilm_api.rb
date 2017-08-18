@@ -94,16 +94,53 @@ class LostFilmAPI
     series_list
   end
 
-  def get_episodes_list
+  def get_episodes_list(series, non_objects: false)
+    url = "#{LF_URL}#{series.link}/seasons"
+    response = get_http_request(url)
 
+    episodes = response.scan(/data-code=\"(\d{1,3}-\d{1,2}-\d{1,2})\"/i).flatten
+    watched_episodes = get_watched_episodes_list(series, non_objects: true)
+
+    return episodes if non_objects
+
+    episodes.map do |episode|
+      LostFilmEpisode.new(
+        id: episode,
+        series_id: series.id,
+        watched: watched_episodes.include?(episode)
+      )
+    end
   end
 
-  def get_watched_episodes_list
+  def get_watched_episodes_list(series, non_objects: false)
+    raise NotAuthorizedError unless authorized?
 
+    params = {
+      act: 'serial',
+      type: 'getmarks',
+      id: series.id
+    }
+
+    response = get_http_request(LF_API_URL, params)
+
+    result = JSON.parse(response)
+    return [] if result.empty? || result['error']
+    return result['data'] if non_objects
+
+    result['data'].map do |ep|
+      LostFilmEpisode.new(
+        id: ep,
+        series_id: series.id,
+        watched: true,
+        downloaded: true
+      )
+    end
   end
 
-  def get_unwatched_episodes_list
-
+  def get_unwatched_episodes_list(series, non_objects: false)
+    list = get_episodes_list(series, non_objects: non_objects)
+    watched_list = get_watched_episodes_list(series, non_objects: non_objects)
+    list - watched_list
   end
 
   private
