@@ -16,11 +16,25 @@ OptionParser.new do |opt|
     exit
   end
 
-  opt.on('-l', '--login', 'Запускает процесс авторизации') { options[:act] = :login }
+  opt.on('--login', 'Запускает процесс авторизации') { options[:act] = :login }
 
-  opt.on('--get-series-list [TYPE]', 'Загружает список сериалов (all(по умолчанию) - всех сериалов, fav - только избранных)') do |o|
+  opt.on('-s [TYPE]', '--get-series-list [TYPE]', 'Загружает список сериалов',
+                                                  'all (по умолчанию) - всех сериалов',
+                                                  'fav - только избранных') do |o|
     options[:act] = :get_series_list
     options[:type] = o.nil? ? :all : o.to_sym
+  end
+
+  opt.on('-f ID,ID,ID', '--follow ID,ID,ID', Array,
+         'Добавляет сериал(ы) в список отслеживаемых') do |o|
+    options[:act] = :follow
+    options[:list] = o.map(&:to_i)
+  end
+
+  opt.on('-u ID,ID,ID', '--unfollow ID,ID,ID', Array,
+         'Убирает сериал(ы) из списка отслеживаемых') do |o|
+    options[:act] = :unfollow
+    options[:list] = o.map(&:to_i)
   end
 
 end.parse!
@@ -46,6 +60,10 @@ when :get_series_list
     UserIO.puts_string "Сперва необходимо пройти авторизацию! Используйте 'ruby lostfilm.rb --help' для вывода справки"
     exit
   end
+
+# Изменяем статус "отслеживается" для сериалов
+when :follow, :unfollow
+  LostFilmClient.change_follow_status(options)
 else
   puts 'unknown protocol'
 end

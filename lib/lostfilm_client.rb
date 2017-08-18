@@ -21,12 +21,14 @@ module LostFilmClient
     lf = LostFilmAPI.new(session: config.session)
     favorited_only = type == :fav
 
-    UserIO.puts_string "Загружаем список #{favorited_only ? "избранных" : "всех"} сериалов"
+    UserIO.print_string "Загружаем список "
+    UserIO.puts_string "#{favorited_only ? "избранных" : "всех"} сериалов"
 
     series_list = lf.get_series_list(favorited_only: favorited_only)
 
     UserIO.puts_string "Загрузка завершена"
-    UserIO.puts_string "Сохранение объектов в Базу Данных. Это может занять несколько минут."
+    UserIO.print_string "Сохранение объектов в Базу Данных."
+    UserIO.puts_string " Это может занять несколько минут."
 
     existed_series_list = LostFilmSeries.all
     new_series_list =  series_list - existed_series_list
@@ -34,10 +36,29 @@ module LostFilmClient
 
     new_series_list.each_with_index do |series, index|
       series.save!
-      UserIO.puts_string "Сохранено сериалов: #{index + 1} из #{new_series_list.size}" if (index + 1) % 10 == 0
+      UserIO.puts_string(
+        "Сохранено сериалов: #{index + 1} из #{new_series_list.size}"
+      ) if (index + 1) % 10 == 0
     end
 
-    UserIO.puts_string "Сохранение завершено. Сохранено сериалов: #{new_series_list.size}"
+    UserIO.print_string "Сохранение завершено."
+    UserIO.puts_string " Сохранено сериалов: #{new_series_list.size}"
+  end
+
+  def change_follow_status(list:, act:)
+    new_status = act == :follow
+
+    list.each do |id|
+      series = LostFilmSeries.find_by(id: id)
+      if series
+        series.followed = new_status
+        series.save!
+        UserIO.print_string "Сериал \"#{series.title}\" "
+        UserIO.puts_string "#{series.followed? ? "теперь" : "больше не"} отслеживается"
+      else
+        UserIO.puts_string "Сериал с ID=#{id} не найден в базе"
+      end
+    end
   end
 
   def check_matches(new_list, existed_list)
