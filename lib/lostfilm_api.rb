@@ -4,11 +4,8 @@ require_relative 'lostfilm_series'
 require_relative 'lostfilm_episode'
 
 class LostFilmAPI
-  class AuthorizationError < StandardError
-  end
-
-  class NotAuthorizedError < StandardError
-  end
+  AuthorizationError = Class.new(StandardError)
+  NotAuthorizedError = Class.new(StandardError)
 
   LF_URL = "https://www.lostfilm.tv"
   LF_API_URL = "#{LF_URL}/ajaxik.php"

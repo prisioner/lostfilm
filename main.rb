@@ -1,19 +1,9 @@
 # encoding: utf-8
 
-# Этот код необходим только при использовании русских букв на Windows
-if Gem.win_platform?
-  Encoding.default_external = Encoding.find(Encoding.locale_charmap)
-  Encoding.default_internal = __ENCODING__
-
-  [STDIN, STDOUT].each do |io|
-    io.set_encoding(Encoding.default_external, Encoding.default_internal)
-  end
-end
-
 require_relative 'lib/lostfilm_api'
 require_relative 'lib/config_loader'
+require_relative 'lib/lostfilm_client'
 require 'optparse'
-require 'io/console'
 
 config = ConfigLoader.new
 DBElement.prepare_db!(config.db_path)
@@ -36,5 +26,15 @@ OptionParser.new do |opt|
   end
 
 end.parse!
+
+case options[:act]
+when :login
+  begin
+    config.session = LostFilmClient.auth
+  rescue LostFilmAPI::AuthorizationError
+    UserIO.puts_string "Введён неверный логин или пароль. Проверьте свои данные и попробуйте снова."
+    exit
+  end
+end
 
 config.save!

@@ -31,10 +31,10 @@ class ConfigLoader
 
   private
 
-  # Ö·´® ¢ ‰†©´• Æ‚·„‚·‚¢Æ¢†´® ≠„¶≠Î• Ø†‡†¨•‚‡Î - Ø‡®·¢†®¢†•‚
+  # –ï—Å–ª–∏ –≤ —Ñ–∞–π–ª–µ –æ—Ç—Å—É—Ç—Å—Ç–≤–æ–≤–∞–ª–∏ –Ω—É–∂–Ω—ã–µ –ø–∞—Ä–∞–º–µ—Ç—Ä—ã - –ø—Ä–∏—Å–≤–∞–∏–≤–∞–µ—Ç
   def set_defaults!
     @session ||= ""
-    @db_path ||= "#{__dir__}/../lostfilm.sqlite"
+    @db_path ||= File.absolute_path("#{__dir__}/../lostfilm.sqlite")
   end
 
   def save_defaults!
