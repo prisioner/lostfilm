@@ -4,6 +4,17 @@ class LostFilmEpisode < DBElement
   attr_reader :id, :series_id
 
   TABLE = "episodes"
+  @@types[TABLE] = self
+
+  def self.from_db_hash(db_hash)
+    new(
+      rowid: db_hash['rowid'],
+      id: db_hash['id'],
+      series_id: db_hash['series_id'],
+      watched: db_hash['watched'] == 1,
+      downloaded: db_hash['downloaded'] == 1
+    )
+  end
 
   def initialize(id:, series_id: nil, watched: false, downloaded: nil, **args)
     super(**args)
@@ -31,5 +42,24 @@ class LostFilmEpisode < DBElement
     parts = @id.split('-')
     # string like v_search.php?c=305&s=1&e=1
     "v_search.php?c=#{parts[0]}&s=#{parts[1]}&e=#{parts[2]}"
+  end
+
+  private
+
+  def to_db_hash
+    {
+      id: @id,
+      series_id: @series_id,
+      watched: watched? ? 1 : 0,
+      downloaded: downloaded? ? 1 : 0
+    }
+  end
+
+  def self.table
+    TABLE
+  end
+
+  def table
+    TABLE
   end
 end

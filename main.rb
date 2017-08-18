@@ -16,11 +16,11 @@ OptionParser.new do |opt|
     exit
   end
 
-  opt.on('-login', 'Запускает процесс авторизации') { options[:act] = :login }
+  opt.on('-l', '--login', 'Запускает процесс авторизации') { options[:act] = :login }
 
-  opt.on('--get-series-list [TYPE]', 'Загружает список сериалов (all - всех сериалов, fav(по умолчанию) - только избранных)') do |o|
+  opt.on('--get-series-list [TYPE]', 'Загружает список сериалов (all(по умолчанию) - всех сериалов, fav - только избранных)') do |o|
     options[:act] = :get_series_list
-    options[:type] = o.nil? ? :fav : o.to_sym
+    options[:type] = o.nil? ? :all : o.to_sym
   end
 
 end.parse!
@@ -33,12 +33,19 @@ when :login
   rescue LostFilmAPI::AuthorizationError
     config.session = ''
     config.save!
-    UserIO.puts_string "Введён неверный логин или пароль. Проверьте свои данные и попробуйте снова."
+    UserIO.puts_string "Введён неверный логин или пароль. " +
+                         "Проверьте свои данные и попробуйте снова."
     exit
   end
+
 # Загрузка списка сериалов
 when :get_series_list
-  puts 'Здесь'
+  begin
+    LostFilmClient.get_series_list(type: options[:type], config: config)
+  rescue LostFilmAPI::NotAuthorizedError
+    UserIO.puts_string "Сперва необходимо пройти авторизацию! Используйте 'ruby lostfilm.rb --help' для вывода справки"
+    exit
+  end
 else
   puts 'unknown protocol'
 end
