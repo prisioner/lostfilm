@@ -61,6 +61,58 @@ module LostFilmClient
     end
   end
 
+  def get_new_episodes(config:)
+    get_series_list(config: config) if config.series_list_autoupdate
+    update_episodes_list(config: config)
+
+    followed_series = LostFilmSeries.where(followed: true)
+    # Список эпизодов отслеживаемых сериалов, которые ещё не были скачаны
+    episodes_to_download = followed_series.flat_map(&:episodes).reject(&:downloaded)
+
+    UserIO.puts_string "Обнаружено новых эпизодов: #{episodes_to_download.size}"
+
+    lf = LostFilmAPI.new(session: config.session)
+    episodes_to_download.each_with_index do |episode, index|
+      result = lf.download(
+        episode.download_link,
+        folder: config.download_folder,
+        quality: config.quality_priority
+      )
+
+      if result
+        episode.downloaded = true
+        episode.save!
+      else
+        series = LostFilmSeries.find_by(id: episode.series_id)
+        UserIO.puts_string "Ошибка при скачивании эпизода #{episode.id} сериала \"#{series.title}\""
+      end
+
+      UserIO.puts_string "Обработано: #{index + 1} из #{episodes_to_download.size}" if (index + 1) % 10 == 0
+    end
+    UserIO.puts_string "Скачивание завершено! Сохраненные файлы в папке: #{config.download_folder}"
+  end
+
+  def update_episodes_list(config:)
+    UserIO.puts_string "Обновляем список эпизодов"
+    lf = LostFilmAPI.new(session: config.session)
+
+    followed_series = LostFilmSeries.where(followed: true)
+    exist_episodes_list = followed_series.flat_map(&:episodes)
+
+    followed_series.each_with_index do |series, index|
+      episodes = lf.get_unwatched_episodes_list(series)
+      new_episodes_list = episodes - exist_episodes_list
+      new_episodes_list.each { |e| e.save! }
+
+      if (index + 1) % 10 == 0
+        UserIO.print_string "Обработано отслеживаемых сериалов: "
+        UserIO.puts_string "#{index + 1} из #{followed_series.size}"
+      end
+    end
+
+    UserIO.puts_string "Обновление списка эпизодов завершено"
+  end
+
   def check_matches(new_list, existed_list)
     new_list.map do |element|
       existed_element = existed_list.find { |e| e.id == element.id }

@@ -1,4 +1,5 @@
 require 'net/http'
+require 'nokogiri'
 require 'json'
 require_relative 'lostfilm_series'
 require_relative 'lostfilm_episode'
@@ -47,7 +48,7 @@ class LostFilmAPI
       id: '1'
     }
 
-    response = get_http_request(LF_API_URL, params)
+    response = get_http_request(LF_API_URL, params: params)
     content = JSON.parse(response)
 
     unauth_result = {'error' => 1}
@@ -71,7 +72,7 @@ class LostFilmAPI
 
     series_list = []
     loop do
-      response = get_http_request(LF_API_URL, params)
+      response = get_http_request(LF_API_URL, params: params)
       result = JSON.parse(response)
       # Если получен пустой ответ - значит, сериалы кончились
       break if result['data'].empty?
@@ -122,7 +123,7 @@ class LostFilmAPI
       id: series.id
     }
 
-    response = get_http_request(LF_API_URL, params)
+    response = get_http_request(LF_API_URL, params: params)
 
     result = JSON.parse(response)
 
@@ -157,9 +158,49 @@ class LostFilmAPI
     end
   end
 
+  def download(link, quality:, folder:)
+    raise NotAuthorizedError unless authorized?
+
+    new_link = get_redirect_link(link)
+
+    download_link = get_download_link(new_link, quality)
+    return if download_link.nil?
+
+    file_content = get_http_request(download_link)
+    file_name = get_file_name(file_content)
+    file_path = File.join(folder, file_name)
+
+    Dir.mkdir(folder) unless Dir.exist?(folder)
+    open(file_path, "wb") { |file| file.write(file_content) }
+  end
+
   private
 
-  def get_http_request(url, params = {})
+  def get_redirect_link(link)
+    response = get_http_request("#{LF_URL}#{link}")
+    response.match(/href=\"(?<link>[^\"]+)\"/i)['link'].to_s
+  end
+
+  def get_download_link(link, quality)
+    response = get_http_request(link)
+    doc = Nokogiri::HTML(response)
+    labels = doc.search("//div[@class='inner-box--label']")
+    allowed_qualities = labels.map(&:text).map(&:strip)
+    selected_quality = quality.find { |q| allowed_qualities.include?(q) }
+    return if selected_quality.nil?
+    label = labels.find { |label| label.text.include?(selected_quality) }
+    box = label.parent
+    box.search("a").first.attributes['href'].value
+  end
+
+  def get_file_name(body)
+    # ищем что-то типа такого "name43:This.is.us.S01E15.1080p.rus.LostFilm.TV.mkv12:"
+    # и вытаскиваем оттуда имя - "This.is.us.S01E15.1080p.rus.LostFilm.TV.mkv"
+    name = body.match(/name[^:]*:(?<file_name>[^:]+?)\d+:/i)['file_name'].to_s
+    "#{name}.torrent"
+  end
+
+  def get_http_request(url, params: {})
     uri = URI(url)
     uri.query = URI.encode_www_form(params) unless params.empty?
 

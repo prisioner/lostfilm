@@ -2,6 +2,7 @@ require_relative 'db_element'
 
 class LostFilmEpisode < DBElement
   attr_reader :id, :series_id
+  attr_accessor :watched, :downloaded
 
   TABLE = "episodes"
   SQL_QUERY = <<~QUERY
@@ -49,7 +50,7 @@ class LostFilmEpisode < DBElement
   def download_link
     parts = @id.split('-')
     # string like v_search.php?c=305&s=1&e=1
-    "v_search.php?c=#{parts[0]}&s=#{parts[1]}&e=#{parts[2]}"
+    "/v_search.php?c=#{parts[0]}&s=#{parts[1]}&e=#{parts[2]}"
   end
 
   private

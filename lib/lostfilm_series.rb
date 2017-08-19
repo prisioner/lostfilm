@@ -2,7 +2,7 @@ require_relative 'db_element'
 
 class LostFilmSeries < DBElement
   attr_reader :id, :title, :title_orig, :link
-  attr_accessor :followed
+  attr_accessor :favorited, :followed, :episodes
 
   TABLE = "series"
   SQL_QUERY = <<~QUERY

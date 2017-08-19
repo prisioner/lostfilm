@@ -43,8 +43,8 @@ class ConfigLoader
     @session ||= ""
     @db_path ||= File.absolute_path(File.join(__dir__, '..', 'lostfilm.sqlite'))
     @download_folder ||= File.absolute_path(File.join(__dir__, '..', 'downloads'))
-    @quality_priority ||= %w(1080 MP4 SD)
-    @series_list_autoupdate ||= true
+    @quality_priority ||= %w(1080 HD MP4 SD)
+    @series_list_autoupdate = true if @series_list_autoupdate.nil?
   end
 
   def save_defaults!
