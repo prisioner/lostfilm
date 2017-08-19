@@ -56,7 +56,7 @@ class LostFilmAPI
   end
 
   def get_series_list(favorited_only: true)
-    raise NotAuthorizedError unless authorized?
+    raise NotAuthorizedError if favorited_only && !authorized?
 
     params = {
       act: 'serial',
@@ -138,9 +138,20 @@ class LostFilmAPI
   end
 
   def get_unwatched_episodes_list(series, non_objects: false)
-    list = get_episodes_list(series, non_objects: non_objects)
-    watched_list = get_watched_episodes_list(series, non_objects: non_objects)
-    list - watched_list
+    list = get_episodes_list(series, non_objects: true)
+    watched_list = get_watched_episodes_list(series, non_objects: true)
+    unwatched_list = list - watched_list
+
+    return unwatched_list if non_objects
+
+    unwatched_list.map do |ep|
+      LostFilmEpisode.new(
+        id: ep,
+        series_id: series.id,
+        watched: false,
+        downloaded: false
+      )
+    end
   end
 
   private
