@@ -1,19 +1,21 @@
 require 'yaml'
 
 class ConfigLoader
-  @@config_file_path = "#{__dir__}/../config.yml"
+  CONFIG_FILE_PATH = File.join(__dir__, '..', 'config.yml')
 
-  attr_accessor :session, :db_path
+  attr_accessor :session, :db_path, :download_folder
 
   def initialize(reset_config: false)
-    save_defaults! unless File.exists?(@@config_file_path)
+    save_defaults! unless File.exists?(CONFIG_FILE_PATH)
     save_defaults! if reset_config
 
-    content = File.read(@@config_file_path, encodint: 'utf-8')
+    content = File.read(CONFIG_FILE_PATH, encodint: 'utf-8')
     config = YAML.load(content)
 
     @db_path = config[:db_path]
     @session = config[:session]
+    @download_folder = config[:download_folder]
+    @quality_priority = config[:quality_priority]
 
     set_defaults!
   end
@@ -21,10 +23,12 @@ class ConfigLoader
   def save!
     config = {
       session: @session,
-      db_path: @db_path
+      db_path: @db_path,
+      download_folder: @download_folder,
+      quality_priority: @quality_priority
     }.to_yaml
 
-    file = File.new(@@config_file_path, 'w:UTF-8')
+    file = File.new(CONFIG_FILE_PATH, 'w:UTF-8')
     file.puts config
     file.close
   end
@@ -34,7 +38,9 @@ class ConfigLoader
   # Если в файле отсутствовали нужные параметры - присваивает
   def set_defaults!
     @session ||= ""
-    @db_path ||= File.absolute_path("#{__dir__}/../lostfilm.sqlite")
+    @db_path ||= File.absolute_path(File.join(__dir__, '..', 'lostfilm.sqlite'))
+    @download_folder ||= File.absolute_path(File.join(__dir__, '..', 'downloads'))
+    @quality_priority ||= %w(1080 MP4 SD)
   end
 
   def save_defaults!
