@@ -3,10 +3,11 @@ require 'sqlite3'
 class DBElement
   attr_accessor :rowid
 
-  # Необходимо переопределить
+  # Необходимо переопределить в дочерних классах
   TABLE = nil
+  SQL_QUERY = nil
 
-  # Типы элементов
+  # Типы элементов, заполняется из дочерних классов при инициализации
   @@types = {}
 
   # Сохраняет путь к БД в переменную класса
@@ -16,30 +17,10 @@ class DBElement
     @@db_path = db_path
     # Коннектимся
     db = SQLite3::Database.open(@@db_path)
-    # Создаём таблицу для сериалов, если её нет в БД
-    db.execute(
-      <<~SERIES_TABLE
-        CREATE TABLE IF NOT EXISTS "main"."series" (
-          "id" INTEGER NOT NULL UNIQUE,
-          "title" TEXT,
-          "title_orig" TEXT,
-          "link" TEXT,
-          "favorited" INTEGER,
-          "followed" INTEGER
-        )
-      SERIES_TABLE
-    )
-    # Создаём таблицу для эпизодов, если её нет в БД
-    db.execute(
-      <<~EPISODES_TABLE
-        CREATE TABLE IF NOT EXISTS "main"."episodes" (
-          "id" TEXT NOT NULL UNIQUE,
-          "series_id" INTEGER,
-          "watched" INTEGER,
-          "downloaded" INTEGER
-        )
-      EPISODES_TABLE
-    )
+
+    # Создаём таблицы, которых нет в БД
+    @@types.each_value { |type| db.execute(type::SQL_QUERY) }
+
     # Отключаемся
     db.close
   end

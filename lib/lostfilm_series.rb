@@ -5,6 +5,16 @@ class LostFilmSeries < DBElement
   attr_accessor :followed
 
   TABLE = "series"
+  SQL_QUERY = <<~QUERY
+              CREATE TABLE IF NOT EXISTS "main"."#{TABLE}" (
+                "id" INTEGER NOT NULL UNIQUE,
+                "title" TEXT,
+                "title_orig" TEXT,
+                "link" TEXT,
+                "favorited" INTEGER,
+                "followed" INTEGER
+              )
+              QUERY
   @@types[TABLE] = self
 
   def self.from_db_hash(db_hash)

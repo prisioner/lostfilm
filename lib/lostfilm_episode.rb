@@ -4,6 +4,14 @@ class LostFilmEpisode < DBElement
   attr_reader :id, :series_id
 
   TABLE = "episodes"
+  SQL_QUERY = <<~QUERY
+              CREATE TABLE IF NOT EXISTS "main"."#{TABLE}" (
+                "id" TEXT NOT NULL UNIQUE,
+                "series_id" INTEGER,
+                "watched" INTEGER,
+                "downloaded" INTEGER
+              )
+              QUERY
   @@types[TABLE] = self
 
   def self.from_db_hash(db_hash)
