@@ -61,7 +61,7 @@ when :login
   rescue LostFilmAPI::AuthorizationError
     config.session = ''
     config.save!
-    UserIO.puts_string "Введён неверный логин или пароль."
+    puts "Введён неверный логин или пароль."
     exit
   end
 
@@ -70,7 +70,7 @@ when :get_series_list
   begin
     LostFilmClient.get_series_list(type: options[:type], config: config)
   rescue LostFilmAPI::NotAuthorizedError
-    UserIO.puts_string "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
+    puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
     exit
   end
 
@@ -84,13 +84,13 @@ when :get_new_episodes
   begin
     LostFilmClient.get_new_episodes(config: config)
   rescue LostFilmAPI::NotAuthorizedError
-    UserIO.puts_string "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
+    puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
     exit
   end
 
 # Неизвестные параметры
 else
-  UserIO.puts_string "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
+  puts "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
 end
 
 config.save!
