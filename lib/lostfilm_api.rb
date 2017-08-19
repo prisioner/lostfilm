@@ -99,9 +99,10 @@ class LostFilmAPI
     response = get_http_request(url)
 
     episodes = response.scan(/data-code=\"(\d{1,3}-\d{1,2}-\d{1,2})\"/i).flatten
-    watched_episodes = get_watched_episodes_list(series, non_objects: true)
 
     return episodes if non_objects
+
+    watched_episodes = get_watched_episodes_list(series, non_objects: true)
 
     episodes.map do |episode|
       LostFilmEpisode.new(
@@ -124,6 +125,8 @@ class LostFilmAPI
     response = get_http_request(LF_API_URL, params)
 
     result = JSON.parse(response)
+
+    # в случае, если пытаемся обратиться к сериалу, которого не существует
     return [] if result.empty? || result['error']
     return result['data'] if non_objects
 
