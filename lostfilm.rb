@@ -1,4 +1,13 @@
 # encoding: utf-8
+# Этот код необходим только при использовании русских букв на Windows
+if Gem.win_platform?
+  Encoding.default_external = Encoding.find(Encoding.locale_charmap)
+  Encoding.default_internal = __ENCODING__
+
+  [STDIN, STDOUT].each do |io|
+    io.set_encoding(Encoding.default_external, Encoding.default_internal)
+  end
+end
 
 require_relative 'lib/lostfilm_client'
 require 'optparse'
@@ -52,8 +61,7 @@ when :login
   rescue LostFilmAPI::AuthorizationError
     config.session = ''
     config.save!
-    UserIO.puts_string "Введён неверный логин или пароль. " +
-                         "Проверьте свои данные и попробуйте снова."
+    UserIO.puts_string "Введён неверный логин или пароль."
     exit
   end
 
@@ -62,7 +70,7 @@ when :get_series_list
   begin
     LostFilmClient.get_series_list(type: options[:type], config: config)
   rescue LostFilmAPI::NotAuthorizedError
-    UserIO.puts_string "Необходимо пройти авторизацию! Используйте 'ruby lostfilm.rb --help' для вывода справки"
+    UserIO.puts_string "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
     exit
   end
 
@@ -71,10 +79,18 @@ when :follow, :unfollow
   LostFilmClient.change_follow_status(options)
 
 # Скачиваем торрент-файлы для новых эпизодов
+# Вывод по умолчанию
 when :get_new_episodes
-  LostFilmClient.get_new_episodes(config: config)
+  begin
+    LostFilmClient.get_new_episodes(config: config)
+  rescue LostFilmAPI::NotAuthorizedError
+    UserIO.puts_string "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
+    exit
+  end
+
+# Неизвестные параметры
 else
-  UserIO.puts_string "Ваша команда не распознана. Используйте 'ruby lostfilm.rb --help' для вывода справки"
+  UserIO.puts_string "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
 end
 
 config.save!
