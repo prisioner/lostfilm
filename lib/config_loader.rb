@@ -4,7 +4,7 @@ class ConfigLoader
   CONFIG_FILE_PATH = File.join(__dir__, '..', 'config.yml')
 
   attr_accessor :session, :db_path, :download_folder
-  attr_accessor :series_list_autoupdate
+  attr_accessor :quality_priority, :series_list_autoupdate
 
   def initialize(reset_config: false)
     save_defaults! unless File.exists?(CONFIG_FILE_PATH)
