@@ -26,7 +26,7 @@ class LostFilmEpisode < DBElement
     @watched = watched
 
     @downloaded = downloaded
-    @downloaded ||= @watched
+    @downloaded = @watched if @downloaded.nil?
   end
 
   def watched?

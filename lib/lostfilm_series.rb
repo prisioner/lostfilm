@@ -26,7 +26,7 @@ class LostFilmSeries < DBElement
     @favorited = favorited
 
     @followed = followed
-    @followed ||= @favorited
+    @followed = @favorited if @followed.nil?
 
     @episodes = episodes
   end
