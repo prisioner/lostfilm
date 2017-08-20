@@ -17,19 +17,6 @@ class LostFilmSeries < DBElement
               QUERY
   @@types[TABLE] = self
 
-  def self.from_db_hash(db_hash)
-    new(
-      rowid: db_hash['rowid'],
-      id: db_hash['id'],
-      title: db_hash['title'],
-      title_orig: db_hash['title_orig'],
-      link: db_hash['link'],
-      favorited: db_hash['favorited'] == 1,
-      followed: db_hash['followed'] == 1,
-      episodes: LostFilmEpisode.where(series_id: db_hash['id'])
-    )
-  end
-
   def initialize(id:, title:, title_orig:, link:, favorited: false, followed: nil, episodes: [], **args)
     super(**args)
     @id = id
@@ -59,6 +46,19 @@ class LostFilmSeries < DBElement
   end
 
   private
+
+  def self.from_db_hash(db_hash)
+    new(
+      rowid: db_hash['rowid'],
+      id: db_hash['id'],
+      title: db_hash['title'],
+      title_orig: db_hash['title_orig'],
+      link: db_hash['link'],
+      favorited: db_hash['favorited'] == 1,
+      followed: db_hash['followed'] == 1,
+      episodes: LostFilmEpisode.where(series_id: db_hash['id'])
+    )
+  end
 
   def to_db_hash
     {

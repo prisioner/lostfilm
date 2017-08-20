@@ -68,10 +68,6 @@ class DBElement
     where(params).first
   end
 
-  def self.from_db_hash
-    raise NotImplementedError
-  end
-
   def initialize(rowid: nil)
     @rowid = rowid
   end
@@ -79,11 +75,6 @@ class DBElement
   # Сохраняемся в БД. Если запись есть - update, если нет - insert
   def save!
     exists? ? update! : insert!
-  end
-
-  # Проверяем, взята ли запись из БД
-  def exists?
-    !@rowid.nil?
   end
 
   # eql?, hash и id - реализованы для работы функции разности массивов
@@ -102,6 +93,10 @@ class DBElement
 
   private
 
+  def self.from_db_hash
+    raise NotImplementedError
+  end
+
   def self.table
     raise NotImplementedError
   end
@@ -112,6 +107,11 @@ class DBElement
 
   def to_db_hash
     raise NotImplementedError
+  end
+
+  # Проверяем, взята ли запись из БД
+  def exists?
+    !@rowid.nil?
   end
 
   def update!

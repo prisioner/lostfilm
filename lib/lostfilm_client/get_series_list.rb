@@ -9,7 +9,7 @@ module LostFilmClient
     series_list = lf.get_series_list(favorited_only: favorited_only)
 
     puts "Загрузка завершена"
-    puts "Сохранение объектов в Базу Данных. Это может занять несколько минут."
+    puts "Сохранение объектов в Базу Данных."
 
     # Список сериалов, которые уже есть в БД
     existed_series_list = LostFilmSeries.all

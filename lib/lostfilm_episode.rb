@@ -15,16 +15,6 @@ class LostFilmEpisode < DBElement
               QUERY
   @@types[TABLE] = self
 
-  def self.from_db_hash(db_hash)
-    new(
-      rowid: db_hash['rowid'],
-      id: db_hash['id'],
-      series_id: db_hash['series_id'],
-      watched: db_hash['watched'] == 1,
-      downloaded: db_hash['downloaded'] == 1
-    )
-  end
-
   def initialize(id:, series_id: nil, watched: false, downloaded: nil, **args)
     super(**args)
     # string like '145-7-1'
@@ -54,6 +44,16 @@ class LostFilmEpisode < DBElement
   end
 
   private
+
+  def self.from_db_hash(db_hash)
+    new(
+      rowid: db_hash['rowid'],
+      id: db_hash['id'],
+      series_id: db_hash['series_id'],
+      watched: db_hash['watched'] == 1,
+      downloaded: db_hash['downloaded'] == 1
+    )
+  end
 
   def to_db_hash
     {
