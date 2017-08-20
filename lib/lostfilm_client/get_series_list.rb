@@ -52,8 +52,6 @@ module LostFilmClient
       !list.map(&:id).include?(series.id)
     end
 
-    puts lost_favorite_status.map(&:title)
-    exit
     lost_favorite_status.each { |series| series.favorited = false }
   end
 
