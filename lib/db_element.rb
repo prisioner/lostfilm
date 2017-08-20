@@ -4,8 +4,8 @@ class DBElement
   attr_accessor :rowid
 
   # Необходимо переопределить в дочерних классах
-  TABLE = nil
-  SQL_QUERY = nil
+  TABLE = nil       # название таблицы
+  SQL_QUERY = nil   # запрос для создания таблицы
 
   # Типы элементов, заполняется из дочерних классов при инициализации
   @@types = {}
@@ -25,6 +25,7 @@ class DBElement
     db.close
   end
 
+  # Возвращает из БД все объекты своего класса
   def self.all
     db = SQLite3::Database.open(@@db_path)
     db.results_as_hash = true
@@ -35,6 +36,7 @@ class DBElement
     list.map { |e| @@types[table].from_db_hash(e) }
   end
 
+  # Возвращает из БД все объекты своего класса, которые соответствуют условию
   def self.where(params)
     db = SQLite3::Database.open(@@db_path)
     db.results_as_hash = true
@@ -61,6 +63,7 @@ class DBElement
     list.map { |e| @@types[table].from_db_hash(e) }
   end
 
+  # Возвращает из БД первый объект своего класса, который соответствует условию
   def self.find_by(params)
     where(params).first
   end
@@ -73,15 +76,19 @@ class DBElement
     @rowid = rowid
   end
 
+  # Сохраняемся в БД. Если запись есть - update, если нет - insert
   def save!
     exists? ? update! : insert!
   end
 
+  # Проверяем, взята ли запись из БД
   def exists?
     !@rowid.nil?
   end
 
+  # eql?, hash и id - реализованы для работы функции разности массивов
   def eql?(other)
+    # Объекты идентичны, если идентичны их классы и ID в системе LostFilm.tv
     self.class == other.class && id == other.id
   end
 

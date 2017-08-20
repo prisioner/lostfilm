@@ -7,22 +7,32 @@ class ConfigLoader
   attr_accessor :quality_priority, :series_list_autoupdate
 
   def initialize(reset_config: false)
+    # Записываем дефолтный конфиг файл, если он отсутствует
     save_defaults! unless File.exists?(CONFIG_FILE_PATH)
+    # Записываем дефолтный конфиг файл, если получена команда сброса настроек
     save_defaults! if reset_config
 
     content = File.read(CONFIG_FILE_PATH, encodint: 'utf-8')
     config = YAML.load(content)
 
+    # путь к БД
     @db_path = config[:db_path]
+    # сессия lostfilm.tv
     @session = config[:session]
+    # директория для загружаемых файлов
     @download_folder = config[:download_folder]
+    # приоритет по качеству видеороликов
     @quality_priority = config[:quality_priority]
+    # автоапдейт списка сериалов перед скачиванием
     @series_list_autoupdate = config[:series_list_autoupdate]
+    # вывод оригинальных названий вместо российских
     @original_titles = config[:original_titles]
 
+    # Устанавливаем значения по умолчанию для отсутствующих полей
     set_defaults!
   end
 
+  # Пишем конфиг в файл
   def save!
     config = {
       session: @session,
@@ -50,6 +60,7 @@ class ConfigLoader
     @original_titles = false if @original_titles.nil?
   end
 
+  # Пишем дефолтный конфиг в файл
   def save_defaults!
     set_defaults!
     save!

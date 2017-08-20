@@ -13,7 +13,9 @@ class LostFilmAPI
 
   attr_reader :session
 
+  #
   def self.get_session(email:, password:)
+    # параметры запроса для авторизации
     params = {
       act: 'users',
       type: 'login',
@@ -24,10 +26,11 @@ class LostFilmAPI
     uri = URI(LF_API_URL)
 
     cookie = nil
-    # try several times to prevent invalid answer issues
+    # прикрываемся от некорректного ответа - повторяем, если пришла пустая сессия
     3.times do
       res = Net::HTTP.post_form(uri, params)
 
+      # Если введён неверный логин или пароль
       raise AuthorizationError if JSON.parse(res.body)['error']
 
       cookie = res['set-cookie'].match(/lf_session=(?!deleted)[^;]+/i).to_s
@@ -41,7 +44,9 @@ class LostFilmAPI
     @session = session
   end
 
+  # проверка, активна ли сессия
   def authorized?
+    # Пытаемся получить список просмотренных эпизодов для какого-то сериала
     params = {
       act: 'serial',
       type: 'getmarks',
@@ -51,14 +56,18 @@ class LostFilmAPI
     response = get_http_request(LF_API_URL, params: params)
     content = JSON.parse(response)
 
+    # Ответ сервера, если мы не авторизованы
     unauth_result = {'error' => 1}
 
     !content.eql?(unauth_result)
   end
 
+  # Загружаем список сериалов
   def get_series_list(favorited_only: true)
+    # Для загрузки избранных сериалов необходима авторизация
     raise NotAuthorizedError if favorited_only && !authorized?
 
+    # Параметры запроса
     params = {
       act: 'serial',
       type: 'search',
@@ -71,6 +80,7 @@ class LostFilmAPI
     }
 
     series_list = []
+    # крутимся, пока не получим пустой ответ
     loop do
       response = get_http_request(LF_API_URL, params: params)
       result = JSON.parse(response)
@@ -95,16 +105,21 @@ class LostFilmAPI
     series_list
   end
 
+  # Загружает список эпизодов для определенного сериала
   def get_episodes_list(series, non_objects: false)
     url = "#{LF_URL}#{series.link}/seasons"
     response = get_http_request(url)
 
+    # парсим вхождения вида 'data-code="145-7-1"' - ID эпизодов из элементов управления страницы
     episodes = response.scan(/data-code=\"(\d{1,3}-\d{1,2}-\d{1,2})\"/i).flatten
 
+    # Если нужен просто список, а не объекты - возвращаем список
     return episodes if non_objects
 
+    # Если нужны объекты - загружаем список просмотренных эпизодов
     watched_episodes = get_watched_episodes_list(series, non_objects: true)
 
+    # формируем объекты
     episodes.map do |episode|
       LostFilmEpisode.new(
         id: episode,
@@ -114,9 +129,12 @@ class LostFilmAPI
     end
   end
 
+  # Загружает список просмотренных эпизодов
   def get_watched_episodes_list(series, non_objects: false)
+    # требуется авторизация
     raise NotAuthorizedError unless authorized?
 
+    # параметры запроса
     params = {
       act: 'serial',
       type: 'getmarks',
@@ -127,10 +145,13 @@ class LostFilmAPI
 
     result = JSON.parse(response)
 
-    # в случае, если пытаемся обратиться к сериалу, которого не существует
+    # в случае, если параметры запроса некорректны
     return [] if result.empty? || result['error']
+
+    # Если нужен просто список, а не объекты - возвращаем список
     return result['data'] if non_objects
 
+    # формируем объекты
     result['data'].map do |ep|
       LostFilmEpisode.new(
         id: ep,
@@ -141,13 +162,19 @@ class LostFilmAPI
     end
   end
 
+  # Возвращаем список непросмотренных эпизодов
   def get_unwatched_episodes_list(series, non_objects: false)
+    # Список всех эпизодов
     list = get_episodes_list(series, non_objects: true)
+    # Список просмотреннх эпизодов
     watched_list = get_watched_episodes_list(series, non_objects: true)
+    # разница между ними - непросмотренные
     unwatched_list = list - watched_list
 
+    # Если не нужны объекты, только список
     return unwatched_list if non_objects
 
+    # Формируем объекты
     unwatched_list.map do |ep|
       LostFilmEpisode.new(
         id: ep,
@@ -158,19 +185,33 @@ class LostFilmAPI
     end
   end
 
+  # Скачиваем файл
   def download(link, quality:, folder:)
+    # Необходима авторизация
     raise NotAuthorizedError unless authorized?
 
+    # Получаем ссылку на редирект
     new_link = get_redirect_link(link)
 
+    # Получаем ссылку на торрент файл
     download_link = get_download_link(new_link, quality)
+
+    # Если ничего не нашли - уходим
+    # Мы можем ничего не найти в двух случаях
+    # 1) Если установлены жесткие настройки по приоритету качества видео
+    # 2) Если этот новый эпизод появился только что
+    #    и сотрудники LostFilm ещё не успели загрузить сам файл
     return if download_link.nil?
 
+    # Скачиваем файл
     file_content = get_http_request(download_link)
+    # Парсим имя файла и строим путь
     file_name = get_file_name(file_content)
     file_path = File.join(folder, file_name)
 
+    # Проверяем, что есть нужная нам директория
     Dir.mkdir(folder) unless Dir.exist?(folder)
+    # Записываем файл на диск
     open(file_path, "wb") { |file| file.write(file_content) }
   end
 
@@ -178,17 +219,24 @@ class LostFilmAPI
 
   def get_redirect_link(link)
     response = get_http_request("#{LF_URL}#{link}")
+    # редирект реализован через JS, поэтому парсим его из тела ответа
     response.match(/href=\"(?<link>[^\"]+)\"/i)['link'].to_s
   end
 
   def get_download_link(link, quality)
     response = get_http_request(link)
     doc = Nokogiri::HTML(response)
+    # внутри лежат "метки" - SD, HD, 1080, MP4
     labels = doc.search("//div[@class='inner-box--label']")
+    # список доступных вариантов
     allowed_qualities = labels.map(&:text).map(&:strip)
+    # ищем самый приоритетный наш вариант, который есть среди доступных
     selected_quality = quality.find { |q| allowed_qualities.include?(q) }
+    # Если настройки приоритета качества слишком жесткие - уходим
     return if selected_quality.nil?
+    # Определяем нужный нам div
     label = labels.find { |label| label.text.include?(selected_quality) }
+    # Ищем первую ссылку в его родительском div - она-то нам и нужна
     box = label.parent
     box.search("a").first.attributes['href'].value
   end
@@ -200,6 +248,7 @@ class LostFilmAPI
     "#{name}.torrent"
   end
 
+  # GET запрос с параметрами и заголовком Cookie, возвращает тело ответа
   def get_http_request(url, params: {})
     uri = URI(url)
     uri.query = URI.encode_www_form(params) unless params.empty?

@@ -12,9 +12,12 @@ end
 require_relative 'lib/lostfilm_client'
 require 'optparse'
 
+# Загружаем конфиг
 config = ConfigLoader.new
+# Подключаем БД
 DBElement.prepare_db!(config.db_path)
 
+# Задаём опцию по умолчанию
 options = {act: :get_new_episodes}
 
 optparser = OptionParser.new do |opt|
@@ -60,6 +63,7 @@ optparser = OptionParser.new do |opt|
   end
 end
 
+# Если передан некорректный ключ - выводим справку
 begin
   optparser.parse!
 rescue OptionParser::InvalidOption
@@ -117,4 +121,5 @@ else
   puts "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
 end
 
+# Сохраняем конфиг перед завершением работы
 config.save!

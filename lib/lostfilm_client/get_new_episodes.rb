@@ -1,8 +1,11 @@
 module LostFilmClient
   def get_new_episodes(config:)
+    # Обновляем список сериалов
     get_series_list(config: config) if config.series_list_autoupdate
+    # Обновляем список эпизодов
     update_episodes_list(config: config)
 
+    # Список отслеживаемых сериалов
     followed_series = LostFilmSeries.where(followed: true)
     # Список эпизодов отслеживаемых сериалов, которые ещё не были скачаны
     episodes_to_download = followed_series.flat_map(&:episodes).reject(&:downloaded)
@@ -11,12 +14,14 @@ module LostFilmClient
 
     lf = LostFilmAPI.new(session: config.session)
     episodes_to_download.each_with_index do |episode, index|
+      # Вернёт nil, либо количество байт, записанных в файл
       result = lf.download(
         episode.download_link,
         folder: config.download_folder,
         quality: config.quality_priority
       )
 
+      # Проверяем, была ли запись в файл
       if result
         episode.downloaded = true
         episode.save!

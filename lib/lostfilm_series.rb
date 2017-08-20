@@ -52,6 +52,7 @@ class LostFilmSeries < DBElement
     @followed
   end
 
+  # Расширяем родительский eql - если статус "в избранном" изменился - объект НЕ тот же самый
   def eql?(other)
     super(other) &&
       @favorited.eql?(other.favorited?)

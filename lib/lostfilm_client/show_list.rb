@@ -1,5 +1,6 @@
 module LostFilmClient
   def show_list(type: :followed, original_titles:)
+    # Получаем список сериалов
     series_list =
       case type
       when :all
@@ -10,14 +11,17 @@ module LostFilmClient
         LostFilmSeries.where(followed:true)
       end
 
+    # Сортируем по названиям по алфавиту
     if original_titles
       series_list.sort_by! { |series| series.title_orig }
     else
       series_list.sort_by! { |series| series.title }
     end
 
+    # Привязываемся к ширине консоли для более корректного вывода таблицы
     width = STDOUT.winsize.last - 5
     width -= 1 if width.odd?
+    # "Тянемся" между 60 и 100 символов. Меньше - не влезет, больше - плохо читается
     width = 60 if width < 60
     width = 100 if width > 100
 
