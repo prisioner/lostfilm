@@ -68,6 +68,18 @@ class DBElement
     where(params).first
   end
 
+  # Возвращает количество элементов в БД
+  # В работе программы пока не используется, но упрощает тестирование
+  def self.count
+    db = SQLite3::Database.open(@@db_path)
+
+    # Запрос вернёт [[count]]
+    count = db.execute("SELECT COUNT(*) FROM #{table}").first.first
+    db.close
+
+    count
+  end
+
   def initialize(rowid: nil)
     @rowid = rowid
   end
