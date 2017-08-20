@@ -1,5 +1,5 @@
 require 'rspec'
-require 'lostfilm_seies'
+require 'lostfilm_series'
 
 describe LostFilmSeries do
 

@@ -1,18 +1,20 @@
 require 'yaml'
 
 class ConfigLoader
-  CONFIG_FILE_PATH = File.join(__dir__, '..', 'config.yml')
+  DEFAULT_FILE_PATH = File.join(__dir__, '..', 'config.yml')
 
   attr_accessor :session, :db_path, :download_folder, :original_titles
   attr_accessor :quality_priority, :series_list_autoupdate
 
-  def initialize(reset_config: false)
+  def initialize(file: DEFAULT_FILE_PATH, reset_config: false)
+    @config_file = file
+
     # Записываем дефолтный конфиг файл, если он отсутствует
-    save_defaults! unless File.exists?(CONFIG_FILE_PATH)
+    save_defaults! unless File.exists?(@config_file)
     # Записываем дефолтный конфиг файл, если получена команда сброса настроек
     save_defaults! if reset_config
 
-    content = File.read(CONFIG_FILE_PATH, encodint: 'utf-8')
+    content = File.read(@config_file, encodint: 'utf-8')
     config = YAML.load(content)
 
     # путь к БД
@@ -43,7 +45,7 @@ class ConfigLoader
       original_titles: @original_titles
     }.to_yaml
 
-    file = File.new(CONFIG_FILE_PATH, 'w:UTF-8')
+    file = File.new(@config_file, 'w:UTF-8')
     file.puts config
     file.close
   end

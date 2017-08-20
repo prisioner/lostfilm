@@ -1,0 +1,5 @@
+---
+:session: some_session
+:db_path: D:/downloads/lostfilm.sqlite
+:download_folder: D:/downloads
+:series_list_autoupdate: false

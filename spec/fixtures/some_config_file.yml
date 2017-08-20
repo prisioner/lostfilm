@@ -1,0 +1,10 @@
+---
+:session: another_session
+:db_path: D:/downloads/lostfilm.sqlite
+:download_folder: D:/downloads
+:quality_priority:
+- MP4
+- HD
+- '1080'
+:series_list_autoupdate: false
+:original_titles: true
