@@ -18,6 +18,8 @@ module LostFilmClient
     # На случай, если у сериала сменился статус "в избранном" - проверяем
     # не был ли он раньше записан в БД
     new_series_list = check_matches(new_series_list, existed_series_list)
+    # Если загружали только избранные - проверяем наличие сериалов, потерявших статус
+    new_series_list += check_favorite_status(series_list, existed_series_list) if favorited_only
 
     new_series_list.each_with_index do |series, index|
       series.save!
@@ -42,4 +44,18 @@ module LostFilmClient
   end
 
   module_function :check_matches
+
+  # Проверяем, что сериал был удален из избранных на сайте
+  def check_favorite_status(list, existed_list)
+    lost_favorite_status = existed_list.select do |series|
+      series.favorited? &&
+      !list.map(&:id).include?(series.id)
+    end
+
+    puts lost_favorite_status.map(&:title)
+    exit
+    lost_favorite_status.each { |series| series.favorited = false }
+  end
+
+  module_function :check_favorite_status
 end
