@@ -3,7 +3,7 @@ require 'yaml'
 class ConfigLoader
   CONFIG_FILE_PATH = File.join(__dir__, '..', 'config.yml')
 
-  attr_accessor :session, :db_path, :download_folder
+  attr_accessor :session, :db_path, :download_folder, :original_titles
   attr_accessor :quality_priority, :series_list_autoupdate
 
   def initialize(reset_config: false)
@@ -18,6 +18,7 @@ class ConfigLoader
     @download_folder = config[:download_folder]
     @quality_priority = config[:quality_priority]
     @series_list_autoupdate = config[:series_list_autoupdate]
+    @original_titles = config[:original_titles]
 
     set_defaults!
   end
@@ -28,7 +29,8 @@ class ConfigLoader
       db_path: @db_path,
       download_folder: @download_folder,
       quality_priority: @quality_priority,
-      series_list_autoupdate: @series_list_autoupdate
+      series_list_autoupdate: @series_list_autoupdate,
+      original_titles: @original_titles
     }.to_yaml
 
     file = File.new(CONFIG_FILE_PATH, 'w:UTF-8')
@@ -45,6 +47,7 @@ class ConfigLoader
     @download_folder ||= File.absolute_path(File.join(__dir__, '..', 'downloads'))
     @quality_priority ||= %w(1080 HD MP4 SD)
     @series_list_autoupdate = true if @series_list_autoupdate.nil?
+    @original_titles = false if @original_titles.nil?
   end
 
   def save_defaults!

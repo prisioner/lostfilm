@@ -17,7 +17,7 @@ DBElement.prepare_db!(config.db_path)
 
 options = {act: :get_new_episodes}
 
-OptionParser.new do |opt|
+optparser = OptionParser.new do |opt|
   opt.banner = 'Использование: ruby lostfilm.rb [options]'
 
   opt.on('-h', '--help', 'Выводит эту справку') do
@@ -51,7 +51,21 @@ OptionParser.new do |opt|
     options[:act] = :get_new_episodes
   end
 
-end.parse!
+  opt.on('-l [TYPE]', '--list [TYPE]', 'Выводит список сериалов',
+                                       'all - всех',
+                                       'fav - избранных',
+                                       'followed (по умолчанию) - отслеживаемых') do |o|
+    options[:act] = :show_list
+    options[:type] = o.nil? ? :followed : o.to_sym
+  end
+end
+
+begin
+  optparser.parse!
+rescue OptionParser::InvalidOption
+  puts "Параметры не распознаны"
+  optparser.parse!(['-h'])
+end
 
 case options[:act]
 # Аторизация
@@ -59,6 +73,8 @@ when :login
   begin
     config.session = LostFilmClient.auth
   rescue LostFilmAPI::AuthorizationError
+    # Сбрасываем старую сессию при неудачной авторизации
+    # (если вдруг сессия была установлена)
     config.session = ''
     config.save!
     puts "Введён неверный логин или пароль."
@@ -76,7 +92,11 @@ when :get_series_list
 
 # Изменяем статус "отслеживается" для сериалов
 when :follow, :unfollow
-  LostFilmClient.change_follow_status(options)
+  LostFilmClient.change_follow_status(
+    list: options[:list],
+    act: options[:act],
+    original_titles: config.original_titles
+  )
 
 # Скачиваем торрент-файлы для новых эпизодов
 # Вывод по умолчанию
@@ -88,7 +108,11 @@ when :get_new_episodes
     exit
   end
 
-# Неизвестные параметры
+# Вывод списка сериалов
+when :show_list
+  LostFilmClient.show_list(type: options[:type], original_titles: config.original_titles)
+
+# Неизвестные параметры, если сюда вообще возможно попасть?
 else
   puts "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
 end
