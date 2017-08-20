@@ -12,8 +12,7 @@ class LostFilmAPI
   LF_API_URL = "#{LF_URL}/ajaxik.php"
 
   attr_reader :session
-
-  #
+  
   def self.get_session(email:, password:)
     # параметры запроса для авторизации
     params = {
