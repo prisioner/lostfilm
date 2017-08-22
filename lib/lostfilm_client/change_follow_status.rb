@@ -3,7 +3,7 @@ module LostFilmClient
     new_status = act == :follow
 
     list.each do |id|
-      series = LostFilmSeries.find_by(id: id)
+      series = Series.find_by(lf_id: id)
       if series
         series.followed = new_status
         series.save!

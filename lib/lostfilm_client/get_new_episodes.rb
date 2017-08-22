@@ -6,7 +6,7 @@ module LostFilmClient
     update_episodes_list(config: config)
 
     # Список отслеживаемых сериалов
-    followed_series = LostFilmSeries.where(followed: true)
+    followed_series = Series.where(followed: true)
     # Список эпизодов отслеживаемых сериалов, которые ещё не были скачаны
     episodes_to_download = followed_series.flat_map(&:episodes).reject(&:downloaded)
 
@@ -24,10 +24,10 @@ module LostFilmClient
       # Проверяем, была ли запись в файл
       if result
         episode.downloaded = true
-        episode.save!
+        episode.save
       else
-        series = LostFilmSeries.find_by(id: episode.series_id)
-        puts "Ошибка при скачивании эпизода #{episode.id} сериала \"#{series.title}\""
+        series = Series.find_by(lf_id: episode.series_id)
+        puts "Ошибка при скачивании эпизода #{episode.lf_id} сериала \"#{series.title}\""
       end
 
       puts "Обработано: #{index + 1} из #{episodes_to_download.size}" if (index + 1) % 10 == 0

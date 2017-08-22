@@ -4,12 +4,12 @@ module LostFilmClient
     series_list =
       case type
       when :all
-        LostFilmSeries.all
+        Series.all
       when :fav
-        LostFilmSeries.where(favorited: true)
+        Series.where(favorited: true)
       else
-        LostFilmSeries.where(followed:true)
-      end
+        Series.where(followed:true)
+      end.to_a
 
     # Сортируем по названиям по алфавиту
     if original_titles
@@ -55,7 +55,7 @@ module LostFilmClient
   module_function :print_header
 
   def print_line(series, original_titles, width)
-    id = series.id.to_s
+    id = series.lf_id.to_s
     title = original_titles ? series.title_orig : series.title
     favorited = series.favorited? ? '+' : ' '
     followed = series.followed? ? '+' : ' '

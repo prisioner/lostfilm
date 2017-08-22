@@ -1,8 +1,8 @@
 require 'net/http'
 require 'nokogiri'
 require 'json'
-require_relative 'lostfilm_series'
-require_relative 'lostfilm_episode'
+require_relative 'series'
+require_relative 'episode'
 
 class LostFilmAPI
   AuthorizationError = Class.new(StandardError)
@@ -87,8 +87,8 @@ class LostFilmAPI
       break if result['data'].empty?
 
       series_list += result['data'].map do |series|
-        LostFilmSeries.new(
-          id: series['id'].to_i,
+        Series.new(
+          lf_id: series['id'].to_i,
           title: series['title'],
           title_orig: series['title_orig'],
           link: series['link'],
@@ -120,9 +120,9 @@ class LostFilmAPI
 
     # формируем объекты
     episodes.map do |episode|
-      LostFilmEpisode.new(
-        id: episode,
-        series_id: series.id,
+      Episode.new(
+        lf_id: episode,
+        series_id: series.lf_id,
         watched: watched_episodes.include?(episode)
       )
     end
@@ -137,7 +137,7 @@ class LostFilmAPI
     params = {
       act: 'serial',
       type: 'getmarks',
-      id: series.id
+      id: series.lf_id
     }
 
     response = get_http_request(LF_API_URL, params: params)
@@ -152,9 +152,9 @@ class LostFilmAPI
 
     # формируем объекты
     result['data'].map do |ep|
-      LostFilmEpisode.new(
-        id: ep,
-        series_id: series.id,
+      Episode.new(
+        lf_id: ep,
+        series_id: series.lf_id,
         watched: true,
         downloaded: true
       )
@@ -175,9 +175,9 @@ class LostFilmAPI
 
     # Формируем объекты
     unwatched_list.map do |ep|
-      LostFilmEpisode.new(
-        id: ep,
-        series_id: series.id,
+      Episode.new(
+        lf_id: ep,
+        series_id: series.lf_id,
         watched: false,
         downloaded: false
       )

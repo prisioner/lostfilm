@@ -1,5 +1,4 @@
 require_relative 'lostfilm_api'
-require_relative 'config_loader'
 
 # авторизация
 require_relative 'lostfilm_client/auth'

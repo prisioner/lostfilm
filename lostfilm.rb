@@ -9,13 +9,19 @@ if Gem.win_platform?
   end
 end
 
-require_relative 'lib/lostfilm_client'
-require 'optparse'
+require 'active_record'
+require_relative 'lib/config_loader'
 
 # Загружаем конфиг
 config = ConfigLoader.new
-# Подключаем БД
-DBElement.prepare_db!(config.db_path)
+
+conn = { adapter: 'sqlite3', database: config.db_path }
+
+ActiveRecord::Base.establish_connection(conn)
+
+require_relative 'lib/lostfilm_client'
+require 'optparse'
+
 
 # Задаём опцию по умолчанию
 options = {act: :get_new_episodes}

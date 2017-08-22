@@ -4,9 +4,9 @@ module LostFilmClient
     lf = LostFilmAPI.new(session: config.session)
 
     # Список отслеживаемых сериалов
-    followed_series = LostFilmSeries.where(followed: true)
+    followed_series = Series.where(followed: true)
     # Список их эпизодов, которые уже есть в БД
-    exist_episodes_list = followed_series.flat_map(&:episodes)
+    exist_episodes_list = followed_series.flat_map(&:episodes).to_a
 
     # Для каждого сериала
     followed_series.each_with_index do |series, index|
@@ -15,8 +15,7 @@ module LostFilmClient
       # Находим из них список тех, которых нет в БД
       new_episodes_list = episodes - exist_episodes_list
       # И сохраняем
-      new_episodes_list.each { |e| e.save! }
-
+      new_episodes_list.each { |e| e.save }
       puts "Обработано отслеживаемых сериалов: #{index + 1} из #{followed_series.size}" if (index + 1) % 10 == 0
     end
 

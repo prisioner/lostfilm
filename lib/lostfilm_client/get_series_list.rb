@@ -12,7 +12,7 @@ module LostFilmClient
     puts "Сохранение объектов в Базу Данных."
 
     # Список сериалов, которые уже есть в БД
-    existed_series_list = LostFilmSeries.all
+    existed_series_list = Series.all.to_a
     # Список сериалов, которые надо сохранить в БД
     new_series_list =  series_list - existed_series_list
     # На случай, если у сериала сменился статус "в избранном" - проверяем
@@ -33,13 +33,16 @@ module LostFilmClient
 
   # Проверяем, не был ли элемент раньше записан в БД
   def check_matches(new_list, existed_list)
+    new_list = new_list.to_a
+    existed_list = existed_list.to_a
+
     new_list.map do |element|
       # Если ID элементов совпадает
-      existed_element = existed_list.find { |e| e.id == element.id }
+      existed_element = existed_list.find { |e| e.lf_id == element.lf_id }
       # То элементу, который надо сохранить в БД под новым статусом
       # присваиваем соответствующий rowid
-      element.rowid = existed_element.rowid unless existed_element.nil?
-      element
+      existed_element.favorited = element.favorited unless existed_element.nil?
+      existed_element.nil? ? element : existed_element
     end
   end
 
@@ -49,7 +52,7 @@ module LostFilmClient
   def check_favorite_status(list, existed_list)
     lost_favorite_status = existed_list.select do |series|
       series.favorited? &&
-      !list.map(&:id).include?(series.id)
+      !list.map(&:lf_id).include?(series.lf_id)
     end
 
     lost_favorite_status.each { |series| series.favorited = false }
