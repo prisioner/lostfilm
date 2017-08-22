@@ -1,6 +1,5 @@
-require 'net/http'
+require 'httparty'
 require 'nokogiri'
-require 'json'
 require_relative 'series'
 require_relative 'episode'
 
@@ -8,97 +7,70 @@ class LostFilmAPI
   AuthorizationError = Class.new(StandardError)
   NotAuthorizedError = Class.new(StandardError)
 
-  LF_URL = "https://www.lostfilm.tv"
-  LF_API_URL = "#{LF_URL}/ajaxik.php"
+  include HTTParty
+  base_uri 'lostfilm.tv'
+  API_PATH = '/ajaxik.php'
 
-  attr_reader :session
-  
   def self.get_session(email:, password:)
-    # параметры запроса для авторизации
-    params = {
-      act: 'users',
-      type: 'login',
-      mail: email,
-      pass: password,
-      rem: 1
-    }
-    uri = URI(LF_API_URL)
+    options = auth_params(email, password)
 
     cookie = nil
-    # прикрываемся от некорректного ответа - повторяем, если пришла пустая сессия
+    # защита от некорректного ответа (с пустым заголовком)
     3.times do
-      res = Net::HTTP.post_form(uri, params)
-
-      # Если введён неверный логин или пароль
+      res = post(API_PATH, options)
+      # Неправильный логин/пароль - exception
       raise AuthorizationError if JSON.parse(res.body)['error']
 
-      cookie = res['set-cookie'].match(/lf_session=(?!deleted)[^;]+/i).to_s
-      break unless cookie.empty?
+      cookie = res.headers['set-cookie'].match(/lf_session=(?!deleted)[^;]+/i).to_s
+      break unless cookie.nil?
     end
 
     cookie
   end
 
-  def initialize(session:)
+  def initialize(session: '')
     @session = session
   end
 
-  # проверка, активна ли сессия
   def authorized?
-    # Пытаемся получить список просмотренных эпизодов для какого-то сериала
-    params = {
-      act: 'serial',
-      type: 'getmarks',
-      id: '1'
-    }
+    query = check_auth_params
 
-    response = get_http_request(LF_API_URL, params: params)
-    content = JSON.parse(response)
-
-    # Ответ сервера, если мы не авторизованы
-    unauth_result = {'error' => 1}
+    res = get_http_request(query: query)
+    content = JSON.parse(res, symbolize_names: true)
+    # ответ сервера для неавторизованного пользователя
+    unauth_result = {error: 1}
 
     !content.eql?(unauth_result)
   end
 
-  # Загружаем список сериалов
   def get_series_list(favorited_only: true)
     # Для загрузки избранных сериалов необходима авторизация
     raise NotAuthorizedError if favorited_only && !authorized?
 
     # Параметры запроса
-    params = {
-      act: 'serial',
-      type: 'search',
-      # "отступ", выдача от API по 10 штук за запрос
-      o: 0,
-      # сортировка. 1 - по рейтингу, 2 - по алфавиту, 3 - по новизне
-      s: 2,
-      # вкладки. 99 - избранные, 0 - все, 1 - новые, 2 - снимающиеся, 5 - завершенные
-      t: favorited_only ? 99 : 0
-    }
+    query = series_params(favorited_only)
 
     series_list = []
     # крутимся, пока не получим пустой ответ
     loop do
-      response = get_http_request(LF_API_URL, params: params)
-      result = JSON.parse(response)
+      response = get_http_request(query: query)
+      result = JSON.parse(response, symbolize_names: true)
       # Если получен пустой ответ - значит, сериалы кончились
-      break if result['data'].empty?
+      break if result[:data].empty?
 
-      series_list += result['data'].map do |series|
+      series_list += result[:data].map do |series|
         Series.new(
-          lf_id: series['id'].to_i,
-          title: series['title'],
-          title_orig: series['title_orig'],
-          link: series['link'],
+          lf_id: series[:id].to_i,
+          title: series[:title],
+          title_orig: series[:title_orig],
+          link: series[:link],
           # series['favorited'] - true, если в избранном, nil - если нет, поэтому || false
-          favorited: series['favorited'] || false
+          favorited: series[:favorited] || false
         )
       end
 
       # прибавляем "отступ"
-      params[:o] += 10
+      query[:o] += 10
     end
 
     series_list
@@ -106,8 +78,8 @@ class LostFilmAPI
 
   # Загружает список эпизодов для определенного сериала
   def get_episodes_list(series, non_objects: false)
-    url = "#{LF_URL}#{series.link}/seasons"
-    response = get_http_request(url)
+    path = "#{series.link}/seasons"
+    response = get_http_request(path)
 
     # парсим вхождения вида 'data-code="145-7-1"' - ID эпизодов из элементов управления страницы
     episodes = response.scan(/data-code=\"(\d{1,3}-\d{1,2}-\d{1,2})\"/i).flatten
@@ -134,24 +106,20 @@ class LostFilmAPI
     raise NotAuthorizedError unless authorized?
 
     # параметры запроса
-    params = {
-      act: 'serial',
-      type: 'getmarks',
-      id: series.lf_id
-    }
+    query = watched_episodes_params(series.lf_id)
 
-    response = get_http_request(LF_API_URL, params: params)
+    response = get_http_request(query: query)
 
-    result = JSON.parse(response)
+    result = JSON.parse(response, symbolize_names: true)
 
     # в случае, если параметры запроса некорректны
-    return [] if result.empty? || result['error']
+    return [] if result.empty? || result[:error]
 
     # Если нужен просто список, а не объекты - возвращаем список
-    return result['data'] if non_objects
+    return result[:data] if non_objects
 
     # формируем объекты
-    result['data'].map do |ep|
+    result[:data].map do |ep|
       Episode.new(
         lf_id: ep,
         series_id: series.lf_id,
@@ -217,7 +185,7 @@ class LostFilmAPI
   private
 
   def get_redirect_link(link)
-    response = get_http_request("#{LF_URL}#{link}")
+    response = get_http_request(link)
     # редирект реализован через JS, поэтому парсим его из тела ответа
     response.match(/href=\"(?<link>[^\"]+)\"/i)['link'].to_s
   end
@@ -247,16 +215,26 @@ class LostFilmAPI
     "#{name}.torrent"
   end
 
-  # GET запрос с параметрами и заголовком Cookie, возвращает тело ответа
-  def get_http_request(url, params: {})
-    uri = URI(url)
-    uri.query = URI.encode_www_form(params) unless params.empty?
+  def get_http_request(path = API_PATH, query: {})
+    options = { query: query, headers: { cookie: @session } }
+    response = self.class.get(path, options)
+    response.body
+  end
 
-    req = Net::HTTP::Get.new(uri)
-    req['cookie'] = @session
+  def self.auth_params(email, password)
+    { body: { act: 'users', type: 'login', mail: email, pass: password, rem: 1 } }
+  end
 
-    res = Net::HTTP.start(uri.hostname, 80) { |http| http.request(req) }
+  def check_auth_params
+    watched_episodes_params(1)
+  end
 
-    res.body
+  def series_params(fav_only)
+    tab = fav_only ? 99 : 0
+    { act: 'serial', type: 'search', o: 0, s: 2, t: tab }
+  end
+
+  def watched_episodes_params(lf_id)
+    { act: 'serial', type: 'getmarks', id: lf_id }
   end
 end
