@@ -129,17 +129,19 @@ module LostFilmClient
     # Список их эпизодов, которые уже есть в БД
     exist_episodes_list = followed_series.flat_map(&:episodes).to_a
 
-    pb = Progress.new(count: followed_series.size, title: "Получаем список новых эпизодов")
+    unless followed_series.empty?
+      pb = Progress.new(count: followed_series.size, title: "Получаем список новых эпизодов")
 
-    # Для каждого сериала
-    followed_series.each do |series|
-      # Получаем список непросмотренных эпизодов
-      episodes = lf.get_unwatched_episodes_list(series)
-      # Находим из них список тех, которых нет в БД
-      new_episodes_list = episodes - exist_episodes_list
-      # И сохраняем
-      new_episodes_list.each { |e| e.save }
-      pb.up
+      # Для каждого сериала
+      followed_series.each do |series|
+        # Получаем список непросмотренных эпизодов
+        episodes = lf.get_unwatched_episodes_list(series)
+        # Находим из них список тех, которых нет в БД
+        new_episodes_list = episodes - exist_episodes_list
+        # И сохраняем
+        new_episodes_list.each { |e| e.save }
+        pb.up
+      end
     end
   end
 
