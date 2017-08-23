@@ -55,8 +55,8 @@ class ConfigLoader
   # Если в файле отсутствовали нужные параметры - присваивает
   def set_defaults!
     @session ||= ""
-    @db_path ||= File.absolute_path(File.join(__dir__, '..', 'lostfilm.sqlite'))
-    @download_folder ||= File.absolute_path(File.join(__dir__, '..', 'downloads'))
+    @db_path ||= File.absolute_path(File.join(__dir__, '..', '..', 'lostfilm.sqlite'))
+    @download_folder ||= File.absolute_path(File.join(__dir__, '..', '..', 'downloads'))
     @quality_priority ||= %w(1080 HD MP4 SD)
     @series_list_autoupdate = true if @series_list_autoupdate.nil?
     @original_titles = false if @original_titles.nil?

@@ -12,8 +12,8 @@ end
 require 'active_record'
 require 'optparse'
 require 'io/console'
-require_relative 'lib/config_loader'
-require_relative 'lib/progress'
+require_relative 'lib/services/config_loader'
+require_relative 'lib/services/progress'
 
 # Загружаем конфиг
 config = ConfigLoader.new
@@ -23,7 +23,7 @@ conn = { adapter: 'sqlite3', database: config.db_path }
 ActiveRecord::Base.establish_connection(conn)
 
 # Подключаем модели
-require_relative 'lib/lostfilm_client'
+require_relative 'lib/services/lostfilm_client'
 
 # Задаём опцию по умолчанию
 options = {act: :get_new_episodes}

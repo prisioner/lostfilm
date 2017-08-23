@@ -1,4 +1,4 @@
-require_relative 'lostfilm_api'
+require_relative '../lostfilm_api'
 
 module LostFilmClient
   module_function

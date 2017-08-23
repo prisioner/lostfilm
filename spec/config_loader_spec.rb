@@ -1,6 +1,6 @@
 require 'rspec'
 require 'fileutils'
-require 'config_loader'
+require 'services/config_loader'
 
 describe ConfigLoader do
   let(:config) { ConfigLoader.new(file: file) }

@@ -1,7 +1,7 @@
 require 'httparty'
 require 'nokogiri'
-require_relative 'series'
-require_relative 'episode'
+require_relative 'models/series'
+require_relative 'models/episode'
 
 class LostFilmAPI
   AuthorizationError = Class.new(StandardError)
