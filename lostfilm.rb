@@ -102,7 +102,9 @@ when :login
     exit
   end
 
+  config.save!
   puts "Авторизация прошла успешно!"
+  exit
 
 ############################
 # Загрузка списка сериалов #
@@ -138,6 +140,8 @@ when :get_series_list, :get_new_episodes
     else
       puts "Нет новых элементов для сохранения"
     end
+
+    exit if options[:act] ==:get_series_list
   end
 
 ################################################

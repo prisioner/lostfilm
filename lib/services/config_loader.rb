@@ -1,7 +1,7 @@
 require 'yaml'
 
 class ConfigLoader
-  DEFAULT_FILE_PATH = File.join(__dir__, '..', 'config.yml')
+  DEFAULT_FILE_PATH = File.join(__dir__, '..', '..', 'config.yml')
 
   attr_accessor :session, :db_path, :download_folder, :original_titles
   attr_accessor :quality_priority, :series_list_autoupdate

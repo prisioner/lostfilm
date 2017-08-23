@@ -25,8 +25,11 @@ module LostFilmClient
     new_list.map do |element|
       # Если ID элементов совпадает
       existed_element = existed_list.find { |e| e.lf_id == element.lf_id }
-      # Если элемент найден - записываем новый статус favorited
-      existed_element.favorited = element.favorited unless existed_element.nil?
+      # Если элемент найден - записываем новый статус favorited и followed
+      unless existed_element.nil?
+        existed_element.favorited = element.favorited
+        existed_element.followed = element.followed
+      end
       existed_element.nil? ? element : existed_element
     end
   end
@@ -38,7 +41,7 @@ module LostFilmClient
         !list.map(&:lf_id).include?(series.lf_id)
     end
 
-    lost_favorite_status.each { |series| series.favorited = false }
+    lost_favorite_status.each { |series| series.favorited = false; series.followed = false }
   end
 
   def change_follow_status(list:, act:, orig_titles:)
