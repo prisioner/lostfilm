@@ -1,7 +1,7 @@
 require 'ruby-progressbar'
 
 class Progress
-  def initialize(count:, title: 'Прогресс: ')
+  def initialize(count:, title: 'Прогресс')
     @bar = ProgressBar.create
     @bar.total = count
     @bar.title = title
