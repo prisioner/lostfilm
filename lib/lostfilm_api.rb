@@ -11,6 +11,8 @@ class LostFilmAPI
   base_uri 'lostfilm.tv'
   API_PATH = '/ajaxik.php'
 
+  attr_reader :session
+
   def self.get_session(email:, password:)
     options = auth_params(email, password)
 

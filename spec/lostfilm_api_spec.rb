@@ -1,23 +1,26 @@
 require 'rspec'
 require 'ostruct'
+require 'active_record'
+conn = { adapter: 'sqlite3', database: ':memory:' }
+ActiveRecord::Base.establish_connection(conn)
 require 'lostfilm_api'
 
 describe LostFilmAPI do
   let(:lf) { LostFilmAPI.new(session: 'some_session') }
-  let(:params) { {id: 329, title: 'Грешница', title_orig: 'The Sinner',
+  let(:params) { {lf_id: 329, title: 'Грешница', title_orig: 'The Sinner',
                  link: '/series/The_Sinner', favorited: true} }
-  let(:series) { LostFilmSeries.new(params) }
+  let(:series) { Series.new(params) }
 
   describe '.get_session' do
     context 'valid email and password' do
       let(:valid_cookie_string) { File.read("#{__dir__}/fixtures/cookie_valid.txt") }
       let(:response_body) { '{"name":"UserName","success":true,"result":"ok"}' }
 
-      let(:response) { OpenStruct.new('set-cookie': valid_cookie_string,
+      let(:response) { OpenStruct.new(headers: {'set-cookie' => valid_cookie_string},
                                        body: response_body) }
 
       it 'returns session' do
-        allow(Net::HTTP).to receive_messages(post_form: response)
+        allow(LostFilmAPI).to receive_messages(post: response)
 
         session = LostFilmAPI.get_session(email: 'email', password: 'pass')
 
@@ -29,7 +32,7 @@ describe LostFilmAPI do
       let(:response) { OpenStruct.new(body: '{"error":3,"result":"ok"}') }
 
       it 'raises LostFilmAPI::AuthorizationError exception' do
-        allow(Net::HTTP).to receive_messages(post_form: response)
+        allow(LostFilmAPI).to receive_messages(post: response)
 
         expect do
           LostFilmAPI.get_session(email: 'email', password: 'pass')
@@ -61,12 +64,12 @@ describe LostFilmAPI do
   describe '#get_series_list' do
     require_relative 'fixtures/fake_get_http_request_list'
 
-    it 'returns list of LostFilmSeries objects' do
-      series = lf.get_series_list
+    it 'returns list of Series objects' do
+      series = lf.get_series_list(favorited_only: false)
 
       expect(series.size).to eq 10
-      expect(series).to all be_instance_of LostFilmSeries
-      expect(series.map(&:id)).to contain_exactly(272, 312, 235, 190, 163,
+      expect(series).to all be_instance_of Series
+      expect(series.map(&:lf_id)).to contain_exactly(272, 312, 235, 190, 163,
                                                   271, 316, 254, 282, 233)
     end
   end
@@ -92,8 +95,8 @@ describe LostFilmAPI do
 
         episodes = lf.get_episodes_list(series)
 
-        expect(episodes).to all be_instance_of LostFilmEpisode
-        expect(episodes.map(&:id)).to contain_exactly('329-1-1', '329-1-2', '329-1-3')
+        expect(episodes).to all be_instance_of Episode
+        expect(episodes.map(&:lf_id)).to contain_exactly('329-1-1', '329-1-2', '329-1-3')
       end
     end
   end
@@ -128,8 +131,8 @@ describe LostFilmAPI do
 
           episodes = lf.get_watched_episodes_list(series)
 
-          expect(episodes).to all be_instance_of LostFilmEpisode
-          expect(episodes.map(&:id)).to contain_exactly('329-1-1')
+          expect(episodes).to all be_instance_of Episode
+          expect(episodes.map(&:lf_id)).to contain_exactly('329-1-1')
         end
       end
     end
@@ -153,8 +156,8 @@ describe LostFilmAPI do
         allow(lf).to receive_messages(get_watched_episodes_list: ['329-1-1'])
 
         episodes = lf.get_unwatched_episodes_list(series)
-        expect(episodes).to all be_instance_of LostFilmEpisode
-        expect(episodes.map(&:id)).to contain_exactly('329-1-2', '329-1-3')
+        expect(episodes).to all be_instance_of Episode
+        expect(episodes.map(&:lf_id)).to contain_exactly('329-1-2', '329-1-3')
       end
     end
   end
