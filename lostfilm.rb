@@ -10,18 +10,20 @@ if Gem.win_platform?
 end
 
 require 'active_record'
+require 'optparse'
+require 'io/console'
 require_relative 'lib/config_loader'
+require_relative 'lib/progress'
 
 # Загружаем конфиг
 config = ConfigLoader.new
 
+# Устанавливаем соединение с БД
 conn = { adapter: 'sqlite3', database: config.db_path }
-
 ActiveRecord::Base.establish_connection(conn)
 
+# Подключаем модели
 require_relative 'lib/lostfilm_client'
-require 'optparse'
-
 
 # Задаём опцию по умолчанию
 options = {act: :get_new_episodes}
@@ -78,10 +80,19 @@ rescue OptionParser::InvalidOption
 end
 
 case options[:act]
-# Аторизация
+##############
+# Аторизация #
+##############
 when :login
+  puts "Авторизация на сайте Lostfilm.tv"
+  puts "Внимание: приложение НЕ хранит Ваш пароль"
+
+  print "Введите ваш email: "
+  email = STDIN.gets.chomp
+  password = STDIN.getpass("Введите ваш пароль: ")
+
   begin
-    config.session = LostFilmClient.auth
+    config.session = LostFilmAPI.get_session(email: email, password: password)
   rescue LostFilmAPI::AuthorizationError
     # Сбрасываем старую сессию при неудачной авторизации
     # (если вдруг сессия была установлена)
@@ -91,41 +102,79 @@ when :login
     exit
   end
 
-# Загрузка списка сериалов
-when :get_series_list
-  begin
-    LostFilmClient.get_series_list(type: options[:type], config: config)
-  rescue LostFilmAPI::NotAuthorizedError
-    puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
-    exit
+  puts "Авторизация прошла успешно!"
+
+############################
+# Загрузка списка сериалов #
+############################
+when :get_series_list, :get_new_episodes
+  unless options[:act] == :get_new_episodes && !config.series_list_autoupdate
+    lf = LostFilmAPI.new(session: config.session)
+    fav_only = options[:type] == :fav
+
+    puts "Загружаем список #{fav_only ? "избранных" : "всех"} сериалов"
+
+    begin
+      # Список сериалов, которые есть на сайте (с учетом опции)
+      series_list = lf.get_series_list(favorited_only: fav_only)
+    rescue LostFilmAPI::NotAuthorizedError
+      puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
+      exit
+    end
+
+    puts "Загрузка завершена"
+
+    new_series_list = LostFilmClient.series_list_to_save(series_list, fav_only: fav_only)
+
+    series_count = new_series_list.size
+
+    if series_count > 0
+      puts "Количество сериалов для сохранения: #{series_count}"
+      pb = Progress.new(count: series_count, title: 'Сохранение объектов в БД')
+
+      new_series_list.each { |series| series.save; pb.up }
+
+      puts "Сохранение завершено."
+    else
+      puts "Нет новых элементов для сохранения"
+    end
   end
 
-# Изменяем статус "отслеживается" для сериалов
+################################################
+# Изменяем статус "отслеживается" для сериалов #
+################################################
 when :follow, :unfollow
-  LostFilmClient.change_follow_status(
+  puts LostFilmClient.change_follow_status(
     list: options[:list],
     act: options[:act],
-    original_titles: config.original_titles
+    orig_titles: config.original_titles
   )
+  exit
 
-# Скачиваем торрент-файлы для новых эпизодов
-# Вывод по умолчанию
-when :get_new_episodes
-  begin
-    LostFilmClient.get_new_episodes(config: config)
-  rescue LostFilmAPI::NotAuthorizedError
-    puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
-    exit
-  end
-
-# Вывод списка сериалов
+#########################
+# Вывод списка сериалов #
+#########################
 when :show_list
-  LostFilmClient.show_list(type: options[:type], original_titles: config.original_titles)
+  puts LostFilmClient.show_list(type: options[:type], orig_titles: config.original_titles)
+  exit
 
-# Неизвестные параметры, если сюда вообще возможно попасть?
+#############################################################
+# Неизвестные параметры, если сюда вообще возможно попасть? #
+#############################################################
 else
   puts "Команда не распознана. 'ruby lostfilm.rb --help' для вывода справки"
+  exit
 end
 
-# Сохраняем конфиг перед завершением работы
-config.save!
+##############################################
+# По умолчанию                               #
+# Скачиваем торрент-файлы для новых эпизодов #
+##############################################
+begin
+  res = LostFilmClient.get_new_episodes(config: config)
+  puts res unless res.empty?
+  puts "Скачивание завершено!"
+rescue LostFilmAPI::NotAuthorizedError
+  puts "Необходимо пройти авторизацию! 'ruby lostfilm.rb --login'"
+  exit
+end
