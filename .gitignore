@@ -1,4 +1,4 @@
 .idea
 *.sqlite
-config.yml
+*.yml
 downloads/*
