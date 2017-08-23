@@ -56,7 +56,7 @@ class LostFilmAPI
       response = get_http_request(query: query)
       result = JSON.parse(response, symbolize_names: true)
       # Если получен пустой ответ - значит, сериалы кончились
-      break if result[:data].empty?
+      break if result[:data].nil? || result[:data].empty?
 
       series_list += result[:data].map do |series|
         Series.new(
